@@ -3,7 +3,7 @@
 
 #if defined(_WIN32)
     #include <windows.h>
-    #include <bcrypt.h>
+    //#include <bcrypt.h>
 #else
     #include <unistd.h>
     #include <fcntl.h>
@@ -24,10 +24,13 @@ int randombytes(void* random_array, unsigned int nbytes)
 { // Generation of "nbytes" of random values
     
 #if defined(_WIN32)
-    if (!BCRYPT_SUCCESS(BCryptGenRandom(NULL, random_array, (unsigned long)nbytes, BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
+    /*if (!BCRYPT_SUCCESS(BCryptGenRandom(NULL, random_array, (unsigned long)nbytes, BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
         return failed;
+    }*/
+    srand(0);
+    for (int i = 0; i < nbytes; ++i) {
+        *((int*)random_array+i)= rand();
     }
-
 #else
     int r, n = (int)nbytes, count = 0;
     
