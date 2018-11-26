@@ -83,9 +83,13 @@ void dap_set_log_tag_width(size_t width) {
 
     // construct new log_tag_fmt_str
     strcpy(log_tag_fmt_str, "[%");
+#ifdef _WIN32
     char tmp[20] = {'\0'};
     itoa((int)width, tmp, 10);
     strcat(log_tag_fmt_str, tmp);
+#else
+    strcat(log_tag_fmt_str, itoa((int)width));
+#endif
     strcat(log_tag_fmt_str, "s]\t");
 }
 
@@ -220,6 +224,36 @@ const char * log_error()
     return last_error;
 }
 
+#ifndef _WIN32
+#define INT_DIGITS 19		/* enough for 64 bit integer */
+
+/**
+ * @brief itoa  The function converts an integer num to a string equivalent and places the result in a string
+ * @param[in] i number
+ * @return
+ */
+char *itoa(int i)
+{
+    /* Room for INT_DIGITS digits, - and '\0' */
+    static char buf[INT_DIGITS + 2];
+    char *p = buf + INT_DIGITS + 1;	/* points to terminating '\0' */
+    if (i >= 0) {
+        do {
+            *--p = '0' + (i % 10);
+            i /= 10;
+        } while (i != 0);
+        return p;
+    }
+    else {			/* i < 0 */
+        do {
+            *--p = '0' - (i % 10);
+            i /= 10;
+        } while (i != 0);
+        *--p = '-';
+    }
+    return p;
+}
+#endif													  
 /**
  * @brief time_to_rfc822 Convert time_t to string with RFC822 formatted date and time
  * @param[out] out Output buffer
