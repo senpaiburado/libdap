@@ -26,18 +26,17 @@
 #include <android/log.h>
 #endif
 
-#ifndef _MSC_VER
-#include <unistd.h> /* 'pipe', 'read', 'write' */
+#ifndef _WIN32
 #include <pthread.h>
 #include <syslog.h>
-#elif defined(_MSC_VER)
-#include <stdio.h>
+#else
 #include <stdlib.h>
 #include <windows.h>
 #include <process.h>
 typedef HANDLE pthread_mutex_t;
 #define popen _popen
 #define pclose _pclose
+#define pipe(pfds) _pipe(pfds, 4096, 0x8000)
 #define PTHREAD_MUTEX_INITIALIZER 0
 int pthread_mutex_lock(HANDLE **obj)
 {
@@ -48,6 +47,7 @@ int pthread_mutex_unlock(HANDLE *obj) {
 }
 #endif
 #include <time.h> /* 'nanosleep' */
+#include <unistd.h> /* 'pipe', 'read', 'write' */
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -83,7 +83,7 @@ void dap_set_log_tag_width(size_t width) {
 
     // construct new log_tag_fmt_str
     strcpy(log_tag_fmt_str, "[%");
-    strcat(log_tag_fmt_str, itoa((int)width));
+    strcat(log_tag_fmt_str, dap_itoa((int)width));
     strcat(log_tag_fmt_str, "s]\t");
 }
 
@@ -226,7 +226,7 @@ const char * log_error()
  * @param[in] i number
  * @return
  */
-char *itoa(int i)
+char *dap_itoa(int i)
 {
     /* Room for INT_DIGITS digits, - and '\0' */
     static char buf[INT_DIGITS + 2];
@@ -247,6 +247,7 @@ char *itoa(int i)
     }
     return p;
 }
+
 
 /**
  * @brief time_to_rfc822 Convert time_t to string with RFC822 formatted date and time
@@ -275,12 +276,10 @@ int time_to_rfc822(char * out, size_t out_size_max, time_t t)
     }
 }
 
-
-
 static int breaker_set[2] = { -1, -1 };
 static int initialized = 0;
 static struct timespec break_latency = {0, 1 * 1000 * 1000 };
-#ifndef _MSC_VER
+
 int get_select_breaker()
 {
     if (!initialized)
@@ -300,7 +299,7 @@ int send_select_break()
     if (read(breaker_set[0], buffer, 1) <= 0 || buffer[0] != '\0') return -1;
     return 0;
 }
-#else
+
 char *strndup(const char *s, size_t n) {
     char *p = memchr(s, '\0', n);
     if (p != NULL)
@@ -312,7 +311,7 @@ char *strndup(const char *s, size_t n) {
     }
     return p;
 }
-#endif
+
 
 #ifdef ANDROID1
 static u_long myNextRandom = 1;
@@ -460,3 +459,38 @@ void dap_dump_hex(const void* data, size_t size) {
     }
     _printrepchar('-', 70);
 }
+
+void *memzero(void *a_buf, size_t n)
+{
+    memset(a_buf,0,n);
+    return a_buf;
+}
+
+#ifdef __MINGW32__
+/*!
+ * \brief Execute shell command silently
+ * \param a_cmd command line
+ * \return 0 if success, -1 otherwise
+ */
+int exec_silent(const char * a_cmd) {
+    PROCESS_INFORMATION p_info;
+    STARTUPINFOA s_info;
+    memzero(&s_info, sizeof(s_info));
+    memzero(&p_info, sizeof(p_info));
+
+    s_info.cb = sizeof(s_info);
+    char cmdline[512] = {'\0'};
+    strcat(cmdline, "C:\\Windows\\System32\\cmd.exe /c ");
+    strcat(cmdline, a_cmd);
+
+    if (CreateProcessA(NULL, cmdline, NULL, NULL, FALSE, 0x08000000, NULL, NULL, &s_info, &p_info)) {
+        WaitForSingleObject(p_info.hProcess, 0xffffffff);
+        CloseHandle(p_info.hProcess);
+        CloseHandle(p_info.hThread);
+        return 0;
+    }
+    else {
+        return -1;
+    }
+}
+#endif
