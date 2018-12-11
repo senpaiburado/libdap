@@ -25,9 +25,13 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "dap_common.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
 
 typedef enum dap_enc_data_type{DAP_ENC_DATA_TYPE_RAW,
 
@@ -193,7 +197,7 @@ typedef struct dap_enc_key_serealize {
     unsigned char priv_key_data[MAX_ENC_KEY_SIZE];
     unsigned char pub_key_data[MAX_ENC_KEY_SIZE];
     unsigned char inheritor[MAX_INHERITOR_SIZE];
-} dap_enc_key_serealize_t;
+} DAP_ALIGN_PACKED dap_enc_key_serealize_t;
 
 int dap_enc_key_init(void);
 void dap_enc_key_deinit(void);
