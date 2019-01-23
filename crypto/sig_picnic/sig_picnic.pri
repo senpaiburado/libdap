@@ -4,6 +4,7 @@ HEADERS += $$PWD/hash.h \
     $$PWD/picnic_impl.h \
     $$PWD/picnic_types.h \
     $$PWD/platform.h \
+    $$PWD/macos_specific_endian.h
 
 
 SOURCES +=  $$PWD/hash.c \
